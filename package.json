@@ -1,0 +1,31 @@
+{
+  "name": "calling-browser-integration-sample",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "NODE_ENV=development node -r ts-node/register server.ts",
+    "build": "next build",
+    "start": "next build && NODE_ENV=production node -r ts-node/register server.ts",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "next": "16.1.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/ws": "^8.18.1",
+    "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.3",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5"
+  }
+}
