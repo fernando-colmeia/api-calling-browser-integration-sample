@@ -99,7 +99,7 @@ app.prepare().then(() => {
             if(body.event === 'connect') {
                 sendWsMessage({
                     type: 'offer',
-                    sdp: body.webRtcSession,
+                    sdp: body.rtcSession,
                 });
             } else {
                 sendWsMessage({
@@ -140,10 +140,10 @@ app.prepare().then(() => {
                     console.log('[WS] answer received', msg.sdp);
 
                     sendCallCommand({
-                        action: "accept",
+                        event: "accept",
                         idCall,
                         idConversation,
-                        session: msg.sdp,
+                        rtcSession: msg.sdp,
                     }).catch((error) => {
                         console.error(error);
 
