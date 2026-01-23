@@ -11,7 +11,7 @@ O objetivo deste guia é demonstrar como:
  - Enviar ou manipular eventos no browser (ou outro sistema) de forma segura.
  - Chamar a API de Calling para iniciar, aceitar ou encerrar chamadas.
 
-## 2. Visão geral da integração
+## 2. Visão geral da arquitetura
 
 ```mermaid
 flowchart LR
