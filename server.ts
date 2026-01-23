@@ -46,6 +46,7 @@ throw new Error(`Colmeia Calling API: ${field} not provided.`);
 
 type SignalMessage =
     | { type: "log"; data: any }
+    | { type: "hangup"; }
     | { type: "offer"; sdp: RTCSessionDescriptionInit }
     | { type: "answer"; sdp: RTCSessionDescriptionInit }
     | { type: "ice"; candidate: RTCIceCandidateInit };
@@ -139,7 +140,7 @@ app.prepare().then(() => {
                 case "answer": 
                     console.log('[WS] answer received', msg.sdp);
 
-                    sendCallCommand({
+                    sendCallEvent({
                         event: "accept",
                         idCall,
                         idConversation,
@@ -161,7 +162,16 @@ app.prepare().then(() => {
                     // Planned
                     break;
                 }
-
+                case "hangup": {
+                    console.log("[WS] hangup received");
+                    
+                    sendCallEvent({
+                        event: "hangup",
+                        idCall,
+                        idConversation,
+                    });
+                    break;
+                }
                 case "ice":
                     console.log("[WS] ICE candidate");
                     break;
@@ -182,8 +192,8 @@ app.prepare().then(() => {
     });
 });
 
-async function sendCallCommand(body: any):  Promise<Response> {
-    console.log(`[WS] send command`, body);
+async function sendCallEvent(body: any):  Promise<Response> {
+    console.log(`[WS] send event`, body);
     const response = await fetch(apiUrl, {
         method: "POST",
         headers: {

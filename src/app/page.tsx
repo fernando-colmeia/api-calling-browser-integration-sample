@@ -17,6 +17,7 @@ type WebSocketState = {
 type SignalMessage =
     | { type: "log"; data: any }
     | { type: "offer"; sdp: RTCSessionDescriptionInit }
+    | { type: "hangup" }
     | { type: "answer"; sdp: RTCSessionDescriptionInit }
     | { type: "ice"; candidate: RTCIceCandidateInit };
 
@@ -80,6 +81,11 @@ export default function Page() {
         pcRef.current?.close();
         pcRef.current = null;
         setLastAnswer(null);
+        
+        wsRef.current?.send({
+            type: "hangup",
+        });
+
         log("Call ended");
     }
 
@@ -166,9 +172,6 @@ export default function Page() {
                     <p><b>Codec:</b> {parsed.codec}</p>
                     <p><b>Sampling rate:</b> {parsed.samplingRate}</p>
                     <p><b>Bitrate:</b> {parsed.bitrate ?? "not signaled"}</p>
-
-                    <h3>ICE Map</h3>
-                    <IceWheel candidates={parsed.ice} />
                 </section>
             )}
 
@@ -225,61 +228,6 @@ function parseSDP(sdp: string): ParsedSDP {
     }
 
     return { codec, samplingRate, bitrate, ice };
-}
-
-/* ---------- ICE visual ---------- */
-
-function IceWheel({
-    candidates
-}: {
-    candidates: { ip: string; type: string }[];
-}) {
-    const size = 180;
-    const center = size / 2;
-    const radius = 60;
-
-    return (
-        <div
-            style={{
-                width: size,
-                height: size,
-                borderRadius: "50%",
-                border: "2px solid #555",
-                position: "relative",
-                animation: "spin 10s linear infinite"
-            }}
-        >
-            {candidates.map((c, i) => {
-                const angle = (i / candidates.length) * 2 * Math.PI;
-                const x = center + Math.cos(angle) * radius;
-                const y = center + Math.sin(angle) * radius;
-
-                return (
-                    <div
-                        key={i}
-                        title={`${c.ip} (${c.type})`}
-                        style={{
-                            position: "absolute",
-                            left: x,
-                            top: y,
-                            width: 10,
-                            height: 10,
-                            borderRadius: "50%",
-                            background:
-                                c.type === "relay" ? "#ff9800" : "#4caf50"
-                        }}
-                    />
-                );
-            })}
-
-            <style>{`
-                @keyframes spin {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-            `}</style>
-        </div>
-    );
 }
 
 /* ---------- styles ---------- */
