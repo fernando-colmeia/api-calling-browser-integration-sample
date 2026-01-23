@@ -26,7 +26,7 @@ Você precisa configurar uma [Rota de conexão](https://docs.colmeia.cx/calling)
 #### 2.2 Headers obrigatórios
 
 `WEBHOOK_SECRET_HEADER` → valor configurado em `.env` (`WEBHOOK_SECRET`) 
-e enviado pela Colmeia na configuração da sua rota.
+e enviado pela Colmeia e definido por você na configuração da sua rota.
 
 Exemplo:
 ```http
@@ -40,26 +40,70 @@ Alternativa futura: JWT (`Authorization`) comentada no `.env-sample`.
 Interface TypeScript:
 
 ```ts
-export interface ICallingIntegrationCallEvent {
-    event: "bot_req_call" | "connect";
-    idCall: string;
-    idBot: string;
-    from: string;
-    to: string;
-    idConversation: string;
+interface ICallingIntegrationWebhookEvent {
     /**
-     * Presente apenas no evento connect
-     * ou answer no futuro.
+     * Tipo do evento de chamada.
+     * Ex: bot_req_call, connect, hangup, etc.
+     */
+    event: 'bot_req_call' | 'connect' | 'accept' | 'reject' | 'hangup';
+
+    /**
+     * Identificador único da chamada.
+     */
+    idCall: string;
+
+    /**
+     * Identificador do bot responsável pela chamada.
+     */
+    idBot: string;
+
+    /**
+     * Identificador da conversa associada à chamada.
+     */
+    idConversation: string;
+
+    /**
+     * Identificador de remoção do halt do bot
+     * Útil para adiar a remoção do halt(fora do evento de hangup) ou a remoção em falhas.
+     * 
+     * Não é necessário enviar no evento de hangup.
+     *
+     * PRESENTE SOMENTE quando:
+     * - event = bot_req_call
+     * - event = connect - Quando o bot possui autorização e inicia a chamada.
+     */
+    idHaltCallback?: string;
+
+    /**
+     * Identificador de origem da chamada.
+     * Pode representar número, usuário ou endpoint lógico.
+     */
+    from: string;
+
+    /**
+     * Destino da chamada.
+     */
+    to: string;
+
+    /**
+     * Sessão do bot.
+     *
+     * PRESENTE SOMENTE quando:
+     * - event = bot_req_call
+     * - event = connect - Quando o bot possui autorização e inicia a chamada.
+     */
+    botSession?: ICallingIntegrationBotSession;
+
+    /**
+     * Descrição de sessão WebRTC.
+     *
+     * PRESENTE SOMENTE quando:
+     * - event = connect
+     * - event = accept
+     *
+     * Representa a sessão RTC ativa associada à chamada.
      */
     rtcSession?: RTCSessionDescriptionInit;
-    /**
-     * Presente nos eventos: bot_req_call ou connect, dependente de quem 
-     * iniciou a chamada.****
-     */ 
-    botSession?: {
-        conversation: IConversationMessageItem[];
-        vars: Record<string, string>;
-    };
 }
 ```
 
@@ -77,6 +121,7 @@ Exemplo de `bot_req_call`:
     "idConversation": "conv-1",
     "from": "5582999999999",
     "to": "5582999999999",
+    "idHalt": "xyz",
     "botSession": {
         "vars": {
             "skd98wndnioj98jjnsuidh9cj": "foo",
@@ -177,6 +222,43 @@ curl -X POST $CALL_API_URL \
 ```
 
 > Qualquer requisição à API de Calling deve incluir token válido.
+
+Interface TypeScript:
+
+```ts
+interface ICallingIntegrationApiEvent {
+    /**
+     * Identificador único da chamada.
+     */
+    idCall: string;
+
+    /**
+     * Identificador da conversa.
+     */
+    idConversation: string;
+
+    /**
+     * Tipo do evento de chamada.
+     */
+    event: 'accept' | 'reject' | 'hangup';
+
+    /**
+     * Sessão WebRTC.
+     *
+     * Normalmente usada em:
+     * - accept
+     * - connect
+     */
+    rtcSession?: RTCSessionDescriptionInit;
+
+    /**
+     * Controle de pausa ou retomada de fluxo.
+     *
+     * idCallback é resolvido internamente.
+     */
+    haltResume?: Omit<ICallbackResumeFlowRequest, 'idCallback'>;
+}
+```
 
 ---
 
