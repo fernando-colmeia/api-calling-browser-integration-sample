@@ -211,7 +211,7 @@ curl -X POST $CALL_API_URL \
   -H "Content-Type: application/json" \
   -H "Authorization: $CALL_API_TOKEN" \
   -d '{
-        "action": "accept",
+        "event": "accept",
         "idCall": "xyz",
         "idConversation": "abc",
         "rtcSession": {
