@@ -5,25 +5,49 @@ Este documento é um guia de conceitos de como essa implementação foi integrad
 ## 1. Introdução
 
 O objetivo deste guia é demonstrar como:
-
+ - Apresentar uma visão geral da arquitetura
  - Receber eventos de chamadas via webhook HTTP.
  - Processar eventos `bot_req_call` e `connect`.
  - Enviar ou manipular eventos no browser (ou outro sistema) de forma segura.
  - Chamar a API de Calling para iniciar, aceitar ou encerrar chamadas.
 
-## 2. Contrato do Webhook
+## 2. Visão geral da integração
+
+```mermaid
+flowchart LR
+WA[WhatsApp User]
+META_SIG[Meta Signaling Infra]
+META_RTC[Meta RTC Infra]
+COLMEIA_SIG[Colmeia Calling Infra]
+COLMEIA_RTC[Colmeia RTC Infra]
+AGENTS[Business Agents]
+
+WA <--> META_SIG
+WA <--> META_RTC
+
+META_SIG <--> COLMEIA_SIG
+COLMEIA_SIG <-- Webhooks / HTTPS --> AGENTS
+
+META_RTC <-- WebRTC / UDP --> COLMEIA_RTC
+COLMEIA_RTC --> AGENTS
+
+META_RTC <-. Optional direct media .-> AGENTS
+```
+
+## 3. Contrato do Webhook
 
 O webhook é o ponto de entrada para eventos da API de Calling.
 Você precisa configurar uma [Rota de conexão](https://docs.colmeia.cx/calling) com método `POST`, que será usada para enviar os eventos.
 
 ### Configuração desse exemplo:
 
-#### 2.1 URL:
+
+#### 3.1 URL:
 ```http
 /webhook/call-event
 ```
 
-#### 2.2 Headers obrigatórios
+#### 3.2 Headers obrigatórios
 
 `WEBHOOK_SECRET_HEADER` → valor configurado em `.env` (`WEBHOOK_SECRET`) 
 e enviado pela Colmeia e definido por você na configuração da sua rota.
@@ -35,7 +59,7 @@ x-cbis-secret: foobaz
 
 Alternativa futura: JWT (`Authorization`) comentada no `.env-sample`.
 
-##### 2.3 Payload
+##### 3.3 Payload
 
 Interface TypeScript:
 
@@ -90,9 +114,19 @@ interface ICallingIntegrationWebhookEvent {
      *
      * PRESENTE SOMENTE quando:
      * - event = bot_req_call
-     * - event = connect - Quando o bot possui autorização e inicia a chamada.
+     * [Planned] - event = connect - Quando o bot possui autorização e inicia a chamada.
      */
-    botSession?: ICallingIntegrationBotSession;
+    botSession?: {
+        /**
+         * Histórico da conversa associada à chamada.
+         * Usado para contexto de decisão do bot.
+         */
+        conversation: IConversationMessageItem[];
+        /**
+         * Informações computadas em tempo real (RTF – Real-Time Fusion).
+         */
+        rtf: Record<string, string>;
+    };
 
     /**
      * Descrição de sessão WebRTC.
@@ -107,24 +141,26 @@ interface ICallingIntegrationWebhookEvent {
 }
 ```
 
-> 
-> Todos as informações disponíveis em `IConversationMessageItem` você encontra em 
-> https://app.colmeia.cx/confing/external-doc/user-function-model
+
+#### Todos as informações disponíveis em `IConversationMessageItem` você encontra em no arquivo de modelagem de UserFunctions:
+
+![Modelagem UserFunctions](./docs/assets/user-functions-model.png)
+
 
 Exemplo de `bot_req_call`:
 
 ```json
 {
     "event": "bot_req_call",
-    "idCall": "ca.ll123",
-    "idBot": "hu65gru56f4ert",
-    "idConversation": "conv-1",
+    "idCall": "xyz",
+    "idBot": "xyz",
+    "idConversation": "xyz",
+    "idHalt": "xyz",
     "from": "5582999999999",
     "to": "5582999999999",
-    "idHalt": "xyz",
     "botSession": {
         "vars": {
-            "skd98wndnioj98jjnsuidh9cj": "foo",
+            "xyz": "foo",
         },
         "conversation": [
             {
@@ -140,9 +176,9 @@ Exemplo de connect com SDP offer:
 ```json
 {
     "event": "connect",
-    "idCall": "call-123",
-    "idBot": "bot-1",
-    "idConversation": "conv-1",
+    "idCall": "xyz",
+    "idBot": "xyz",
+    "idConversation": "xyz",
     "from": "5582999999999",
     "to": "5582999999999",
     "rtcSession": {
@@ -152,7 +188,7 @@ Exemplo de connect com SDP offer:
 }
 ```
 
-#### 2.4 Resposta esperada
+#### 3.4 Resposta esperada
 
 O servidor deve responder rapidamente com **200 OK**.
 
@@ -160,33 +196,35 @@ Garantindo que a API de Calling não considere o evento falho.
 
 ---
 
-### 3. Testando o Webhook com curl
-#### 3.1 bot_req_call
+### 4. Testando o Webhook com curl
+#### 4.1 bot_req_call
 ```bash
 curl -X POST http://localhost:5000/webhook/call-event \
   -H 'Content-Type: application/json' \
   -H 'x-cbis-secret: foobaz' \
   -d '{
     "event": "bot_req_call",
-    "idCall": "call-123",
-    "idBot": "bot-1",
+    "idCall": "xyz",
+    "idBot": "xyz",
     "from": "5511999999999",
     "to": "5511888888888",
-    "idConversation": "conv-1"
+    "idConversation": "xyz"
   }'
 ````
-#### 3.2 connect
+
+#### 4.2 connect
+
 ```bash
 curl -X POST http://localhost:5000/webhook/call-event \
   -H 'Content-Type: application/json' \
   -H 'x-cbis-secret: foobaz' \
   -d '{
     "event": "connect",
-    "idCall": "call-123",
-    "idBot": "bot-1",
+    "idCall": "xyz",
+    "idBot": "xyz",
     "from": "5511999999999",
     "to": "5511888888888",
-    "idConversation": "conv-1",
+    "idConversation": "xyz",
     "session": {
         "type": "offer",
         "sdp": "v=0\r\no=- 123 2 IN IP4 127.0.0.1\r\n..."
@@ -195,7 +233,7 @@ curl -X POST http://localhost:5000/webhook/call-event \
 ```
 ---
 
-### 4. Chamando a API de Calling
+### 5. Chamando a API de Calling
 
 Endpoint configurável via `.env`:
 
@@ -213,15 +251,13 @@ curl -X POST $CALL_API_URL \
   -d '{
         "event": "accept",
         "idCall": "xyz",
-        "idConversation": "abc",
+        "idConversation": "xyz",
         "rtcSession": {
             "type": "answer",
             "sdp": "v=0\r\no=- 123 2 IN IP4 127.0.0.1\r\n..."
         }
     }'
 ```
-
-> Qualquer requisição à API de Calling deve incluir token válido.
 
 Interface TypeScript:
 
@@ -262,7 +298,7 @@ interface ICallingIntegrationApiEvent {
 
 ---
 
-### 5. Fluxo completo de integração
+### 6. Fluxo completo de integração
 
 1. API de Calling envia evento → webhook HTTP.
 2. Server custom valida header → parse do body → envia 200 OK.
@@ -282,7 +318,7 @@ interface ICallingIntegrationApiEvent {
 
 ---
 
-### 6. Boas práticas de integração
+### 7. Boas práticas de integração
 
  - Sempre validar header secreto do webhook.
  - Responder rapidamente **200 OK** para o evento.
