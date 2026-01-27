@@ -111,7 +111,8 @@ app.prepare().then(() => {
 
             res.writeHead(200, { "Content-Type": "text/plain" });
             res.end("ok");
-        } catch {
+        } catch(err) {
+            console.error(err);
             res.writeHead(400, { "Content-Type": "text/plain" });
             res.end("invalid body");
         }
