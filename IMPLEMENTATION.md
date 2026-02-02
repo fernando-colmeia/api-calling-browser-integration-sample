@@ -238,7 +238,7 @@ curl -X POST http://localhost:5000/webhook/call-event \
 Endpoint configurável via `.env`:
 
 ```ini
-CALL_API_URL=https://dev-api.colmeia.cx/v1/rest/calling/command
+CALL_API_URL=https://dev-api.colmeia.cx/v1/rest/calling/event
 CALL_API_TOKEN=seu_token_aqui
 ```
 
