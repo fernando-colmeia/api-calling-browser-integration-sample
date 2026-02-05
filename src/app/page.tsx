@@ -80,7 +80,6 @@ export default function Page() {
     function hangup() {
         pcRef.current?.close();
         pcRef.current = null;
-        setLastAnswer(null);
         
         wsRef.current?.send({
             type: "hangup",
