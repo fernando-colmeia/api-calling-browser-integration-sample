@@ -47,6 +47,7 @@ throw new Error(`Colmeia Calling API: ${field} not provided.`);
 type SignalMessage =
     | { type: "log"; data: any }
     | { type: "hangup"; }
+    | { type: "reject"; }
     | { type: "offer"; sdp: RTCSessionDescriptionInit }
     | { type: "answer"; sdp: RTCSessionDescriptionInit }
     | { type: "ice"; candidate: RTCIceCandidateInit };
@@ -161,6 +162,16 @@ app.prepare().then(() => {
                 case "offer": {
                     console.log("[WS] offer received");
                     // Planned
+                    break;
+                }
+                case "reject": {
+                    console.log("[WS] reject received");
+                    
+                    sendCallEvent({
+                        event: "reject",
+                        idCall,
+                        idConversation,
+                    });
                     break;
                 }
                 case "hangup": {

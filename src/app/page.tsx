@@ -18,6 +18,7 @@ type SignalMessage =
     | { type: "log"; data: any }
     | { type: "offer"; sdp: RTCSessionDescriptionInit }
     | { type: "hangup" }
+    | { type: "reject" }
     | { type: "answer"; sdp: RTCSessionDescriptionInit }
     | { type: "ice"; candidate: RTCIceCandidateInit };
 
@@ -76,6 +77,17 @@ export default function Page() {
     }, []);
 
     
+
+    function reject() {
+        pcRef.current?.close();
+        pcRef.current = null;
+        
+        wsRef.current?.send({
+            type: "reject",
+        });
+
+        log("Call ended");
+    }
 
     function hangup() {
         pcRef.current?.close();
@@ -142,6 +154,17 @@ export default function Page() {
                     }}
                 >
                     Accept
+                </button>
+
+                <button
+                    onClick={reject}
+                    disabled={!incomingOffer}
+                    style={{
+                        ...styles.button,
+                        background: incomingOffer ? "#ff0000" : "#999"
+                    }}
+                >
+                    Reject
                 </button>
 
                 <button
